@@ -1,0 +1,16 @@
+stages: [lint, test]
+
+lint:
+  stage: lint
+  image: python:3.12
+  script:
+    - pip install -r requirements.txt
+    - ruff check .
+    - mypy src
+
+test:
+  stage: test
+  image: python:3.12
+  script:
+    - pip install -r requirements.txt
+    - pytest --cov=src --cov-fail-under=80
