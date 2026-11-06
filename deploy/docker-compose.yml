@@ -3,8 +3,19 @@ services:
     image: postgres:16
     environment:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-  api:
-    build:
-      context: ..
-      dockerfile: deploy/Dockerfile
-    ports: ["8004:8000"]
+
+  scorm-service:
+    image: b2-scorm-player-test
+    platform: linux/amd64
+    ports:
+      - "${SCORM_SERVICE_PORT:-8004}:8000"
+    depends_on:
+      - db
+
+  scorm-content:
+    image: nginx:alpine
+    ports:
+      - "${SCORM_CONTENT_PORT:-8104}:80"
+    volumes:
+      - ../data/packages:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
