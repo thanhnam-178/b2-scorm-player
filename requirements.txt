@@ -5,3 +5,6 @@ pytest
 pytest-cov
 ruff
 mypy
+defusedxml
+python-multipart
+boto3
