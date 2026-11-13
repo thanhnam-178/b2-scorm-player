@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Nhập gói SCORM</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; }
+  button { padding: 8px 16px; cursor: pointer; }
+  .ok { color: #0a7a2f; }
+  .loi { color: #b00020; }
+  table { border-collapse: collapse; margin-top: 12px; width: 100%; }
+  td { border: 1px solid #ccc; padding: 6px 10px; word-break: break-all; }
+  td:first-child { width: 160px; font-weight: bold; }
+</style>
+</head>
+<body>
+<h1>Nhập gói SCORM</h1>
+<input type="file" id="tep" accept=".zip">
+<button id="nut">Nhập gói</button>
+<p id="thongbao"></p>
+<table id="bang"></table>
+
+<script>
+const tep = document.getElementById("tep");
+const nut = document.getElementById("nut");
+const thongbao = document.getElementById("thongbao");
+const bang = document.getElementById("bang");
+
+function themDong(khoa, giaTri) {
+  const tr = document.createElement("tr");
+  const a = document.createElement("td");
+  const b = document.createElement("td");
+  a.textContent = khoa;
+  b.textContent = giaTri;
+  tr.append(a, b);
+  bang.append(tr);
+}
+
+function baoLoi(noiDung) {
+  thongbao.textContent = noiDung;
+  thongbao.className = "loi";
+}
+
+nut.addEventListener("click", async () => {
+  bang.replaceChildren();
+  thongbao.className = "";
+  if (!tep.files.length) {
+    baoLoi("Hãy chọn một file .zip trước.");
+    return;
+  }
+  const form = new FormData();
+  form.append("file", tep.files[0]);
+  thongbao.textContent = "Đang nhập gói...";
+  try {
+    const res = await fetch("/api/v1/packages", { method: "POST", body: form });
+    const data = await res.json();
+    if (!res.ok) {
+      const lyDo = typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail);
+      baoLoi("Bị từ chối: " + lyDo);
+      return;
+    }
+    thongbao.textContent = "Nhập gói thành công";
+    thongbao.className = "ok";
+    themDong("Tên gói", data.package);
+    themDong("Phiên bản gói", "v" + data.version);
+    themDong("Phiên bản SCORM", data.scorm_version);
+    themDong("Số tệp", data.files);
+    themDong("SHA-256", data.sha256);
+    themDong("Thư mục lưu", data.path);
+    data.scos.forEach((sco) => themDong("SCO", sco.identifier + " → " + sco.href));
+  } catch (e) {
+    baoLoi("Không kết nối được server: " + e);
+  }
+});
+</script>
+</body>
+</html>
