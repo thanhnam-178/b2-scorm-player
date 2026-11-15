@@ -8,3 +8,7 @@ mypy
 defusedxml
 python-multipart
 boto3
+sqlalchemy
+alembic
+psycopg[binary]
+python-dotenv

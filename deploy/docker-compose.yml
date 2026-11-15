@@ -2,7 +2,13 @@ services:
   db:
     image: postgres:16
     environment:
+      POSTGRES_DB: lv04_db
+      POSTGRES_USER: lv04_owner
       POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "127.0.0.1:15432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
 
   scorm-service:
     build:
@@ -44,3 +50,4 @@ services:
 
 volumes:
   minio_data:
+  pgdata:
