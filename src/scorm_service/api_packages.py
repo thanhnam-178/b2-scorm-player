@@ -4,8 +4,12 @@ import tempfile
 from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
+from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 
+from scorm_service.db import phien_lam_viec
 from scorm_service.importer import PackageRejected, import_package
+from scorm_service.models import PackageVersion, Sco
 from scorm_service.storage import next_version, upload_dir
 
 router = APIRouter(prefix="/api/v1")
@@ -24,8 +28,31 @@ def tai_goi(file: UploadFile = File(...)):
             kq = import_package(tam, dich)
         except PackageRejected as e:
             raise HTTPException(status_code=400, detail=str(e))
-        phien_ban = next_version(ten)
-        prefix = f"{ten}/v{phien_ban}"
-        upload_dir(dich, prefix)
 
-    return {"package": ten, "version": phien_ban, "path": prefix, **kq}
+        try:
+            with phien_lam_viec() as s:
+                so_db = s.scalar(
+                    select(func.max(PackageVersion.version)).where(PackageVersion.package == ten)
+                ) or 0
+                phien_ban = max(so_db + 1, next_version(ten))
+                prefix = f"{ten}/v{phien_ban}"
+                pv = PackageVersion(
+                    package=ten,
+                    version=phien_ban,
+                    scorm_version=kq["scorm_version"],
+                    sha256=kq["sha256"],
+                    storage_prefix=prefix,
+                    status="ready",
+                )
+                for vi_tri, sco in enumerate(kq["scos"]):
+                    pv.scos.append(
+                        Sco(identifier=sco["identifier"] or "", href=sco["href"], position=vi_tri)
+                    )
+                s.add(pv)
+                s.flush()  # DB xac nhan so phien ban chua bi trung
+                upload_dir(dich, prefix)
+                id_pv = pv.id
+        except IntegrityError:
+            raise HTTPException(status_code=409, detail="Trung so phien ban, hay tai lai")
+
+    return {"id": id_pv, "package": ten, "version": phien_ban, "path": prefix, **kq}
