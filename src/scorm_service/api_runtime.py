@@ -1,3 +1,4 @@
+from typing import Any
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -10,6 +11,12 @@ from .models.runtime_session import RuntimeSession
 from .models.sco_state import ScoState
 from .runtime_rules import bat_dau_phien, cmi_cho_sco
 from .sessions import doi_ma_lay_token, nguoi_hoc_tu_token
+
+from pydantic import BaseModel, Field          # thêm Field
+
+from .models.base import bay_gio               # thêm
+from .runtime_rules import ap_dung_lo, bat_dau_phien, cmi_cho_sco, rut_cot  # thêm 2 tên
+
 
 router = APIRouter(
     prefix="/api/v1/runtime",
@@ -79,3 +86,38 @@ def initialize(
     ra["cmi.core.student_id"] = attempt.person_code
     ra["cmi.core.student_name"] = f"{nguoi.family_name}, {nguoi.given_name}"
     return {"cmi": ra}
+
+
+class CommitRequest(BaseModel):
+    seq: int = Field(ge=1)
+    changes: dict[str, Any]
+
+
+@router.post("/commit")
+def commit(
+    data: CommitRequest,
+    phien: RuntimeSession = Depends(phien_hien_tai),
+    s: Session = Depends(get_db),
+):
+    state = s.scalar(
+        select(ScoState).where(
+            ScoState.attempt_id == phien.attempt_id,
+            ScoState.sco_id == phien.sco_id,
+        )
+    )
+    if state is None:
+        raise HTTPException(status_code=409, detail="Chua Initialize")
+
+    if data.seq <= state.last_seq:
+        # lo cu hoac trung: bo qua, khong ghi lai (TC-14)
+        return {"ok": True, "duplicate": True, "last_seq": state.last_seq,
+                "errors": {}, "locked": []}
+
+    kq = ap_dung_lo(state.cmi, data.changes)
+    state.cmi = kq.cmi
+    for ten_cot, gia_tri in rut_cot(kq.cmi).items():
+        setattr(state, ten_cot, gia_tri)
+    state.last_seq = data.seq
+    state.updated_at = bay_gio()
+    return {"ok": True, "duplicate": False, "last_seq": state.last_seq,
+            "errors": kq.loi, "locked": kq.bi_khoa}
