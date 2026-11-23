@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from scorm_service.api_packages import router as packages_router
 from scorm_service.demo_page import router as demo_router
+from scorm_service.api_runtime import router as runtime_router
 
 app = FastAPI()
 
@@ -10,4 +11,5 @@ def health() -> dict[str, str]:
 
 app.include_router(packages_router)
 app.include_router(demo_router)
+app.include_router(runtime_router)
 

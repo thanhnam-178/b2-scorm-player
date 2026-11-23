@@ -5,6 +5,9 @@ from .person import Person
 from .sco import Sco
 from .section import Section
 from .term import Term
+from .attempt import Attempt
+from .sco_state import ScoState
+from .runtime_session import RuntimeSession 
 
 __all__ = [
     "Base",
@@ -14,4 +17,7 @@ __all__ = [
     "Sco",
     "Section",
     "Term",
+    "Attempt",
+    "ScoState",
+    "RuntimeSession",
 ]
