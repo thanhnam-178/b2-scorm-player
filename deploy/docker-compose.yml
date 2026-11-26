@@ -24,6 +24,15 @@ services:
       S3_SECRET_KEY: ${S3_SECRET_KEY}
       S3_BUCKET: ${S3_BUCKET}
       DATABASE_URL: postgresql://lv04_owner:${DB_PASSWORD}@db:5432/lv04_db
+      MIGRATION_DATABASE_URL: postgresql://lv04_owner:${DB_PASSWORD}@db:5432/lv04_db
+      KEYCLOAK_ISSUER: ${KEYCLOAK_ISSUER}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      KEYCLOAK_REDIRECT_URI: ${KEYCLOAK_REDIRECT_URI}
+      KEYCLOAK_POST_LOGOUT_REDIRECT_URI: ${KEYCLOAK_POST_LOGOUT_REDIRECT_URI}
+      KEYCLOAK_SCOPES: "${KEYCLOAK_SCOPES:-openid profile email}"
+      SESSION_SECRET: ${SESSION_SECRET}
+      SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
     depends_on:
       - db
       - minio
