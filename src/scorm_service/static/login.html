@@ -1,0 +1,241 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#123b72">
+  <title>B2 SCORM Player</title>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: Arial, sans-serif;
+      color: #172b4d;
+      background: linear-gradient(135deg, #edf5ff, #f7f9fc);
+    }
+
+    .container {
+      width: 100%;
+      max-width: 440px;
+      padding: 42px 36px;
+      text-align: center;
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 16px 50px rgba(24, 59, 105, .12);
+    }
+
+    .logo {
+      width: 68px;
+      height: 68px;
+      margin: 0 auto 20px;
+      display: grid;
+      place-items: center;
+      border-radius: 18px;
+      background: #174a87;
+      color: white;
+      font-size: 25px;
+      font-weight: bold;
+      letter-spacing: -2px;
+    }
+
+    h1 {
+      margin: 0;
+      color: #173e70;
+      font-size: 25px;
+    }
+
+    .subtitle {
+      margin: 12px 0 28px;
+      color: #718096;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .login-button, .logout-button {
+      display: block;
+      width: 100%;
+      padding: 15px;
+      border: 0;
+      border-radius: 10px;
+      background: #1763b1;
+      color: white;
+      font-size: 15px;
+      font-weight: bold;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background .2s;
+    }
+
+    .login-button:hover {
+      background: #104d90;
+    }
+
+    .logout-button {
+      margin-top: 12px;
+      background: #fff;
+      color: #b42318;
+      border: 1px solid #f0c7c4;
+    }
+
+    .logout-button:hover {
+      background: #fff5f4;
+    }
+
+    .status {
+      margin: 0 0 18px;
+      padding: 12px;
+      border-radius: 10px;
+      background: #eaf8ef;
+      color: #18743a;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .person {
+      margin: 20px 0;
+      padding: 16px;
+      border: 1px solid #e4ebf4;
+      border-radius: 12px;
+      background: #f8fafd;
+    }
+
+    .person-label {
+      margin-bottom: 8px;
+      color: #718096;
+      font-size: 13px;
+    }
+
+    .person-code {
+      color: #174a87;
+      font-size: 22px;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+
+    .note {
+      margin-top: 24px;
+      color: #8795a8;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .footer {
+      margin-top: 28px;
+      color: #a0aaba;
+      font-size: 12px;
+    }
+
+    .hidden { display: none; }
+
+    @media (max-width: 480px) {
+      .container { padding: 34px 24px; }
+      h1 { font-size: 22px; }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="container">
+    <div class="logo">B2</div>
+
+    <h1>B2 SCORM Player</h1>
+
+    <p class="subtitle">
+      Hệ thống trình phát và quản lý nội dung học tập SCORM
+    </p>
+
+    <section id="guest">
+      <a class="login-button" href="/api/v1/auth/login">
+        Đăng nhập bằng tài khoản
+      </a>
+
+      <p class="note">
+        Đăng nhập bằng tài khoản được cấp thông qua hệ thống xác thực.
+      </p>
+    </section>
+
+    <section id="logged-in" class="hidden">
+      <div class="status">✓ Bạn đã đăng nhập thành công</div>
+
+      <div class="person">
+        <div class="person-label">Mã người học</div>
+        <div class="person-code" id="person-code"></div>
+        </div>
+
+        <div id="upload-area" class="hidden">
+        <a class="login-button" href="/demo">
+            Trang nhập gói SCORM
+        </a>
+        </div>
+
+        <p id="student-message" class="note hidden">
+        Bạn đã đăng nhập với tài khoản học viên.
+        </p>
+
+        <a class="logout-button" href="/api/v1/auth/logout">
+        Đăng xuất
+        </a>
+    </section>
+
+    <p id="error" class="note hidden">
+      Không thể kiểm tra trạng thái đăng nhập. Vui lòng tải lại trang.
+    </p>
+
+    <div class="footer">B2 SCORM Player</div>
+  </main>
+
+  <script>
+    async function kiemTraPhienDangNhap() {
+      const guest = document.getElementById("guest");
+      const loggedIn = document.getElementById("logged-in");
+        const personCode = document.getElementById("person-code");
+      const uploadArea = document.getElementById("upload-area");
+      const studentMessage = document.getElementById("student-message");
+      const error = document.getElementById("error");
+
+      try {
+        const response = await fetch("/api/v1/auth/session", {
+          credentials: "same-origin",
+          cache: "no-store"
+        });
+
+        if (!response.ok) {
+          throw new Error("Không thể kiểm tra session");
+        }
+
+        const data = await response.json();
+
+        if (data.authenticated && data.person_code) {
+          personCode.textContent = data.person_code;
+
+          guest.classList.add("hidden");
+          loggedIn.classList.remove("hidden");
+
+          if (data.can_upload === true) {
+            uploadArea.classList.remove("hidden");
+            studentMessage.classList.add("hidden");
+          } else {
+            uploadArea.classList.add("hidden");
+            studentMessage.classList.remove("hidden");
+          }
+        } else {
+          loggedIn.classList.add("hidden");
+          guest.classList.remove("hidden");
+        }
+      } catch (e) {
+        error.classList.remove("hidden");
+      }
+    }
+
+    kiemTraPhienDangNhap();
+  </script>
+</body>
+</html>

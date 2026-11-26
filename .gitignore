@@ -4,3 +4,4 @@ _pycache__/
 __pycache__/
 *.pyc
 docs
+deploy/docker-compose.local.yml

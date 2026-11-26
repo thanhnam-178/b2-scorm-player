@@ -10,7 +10,7 @@ from sqlalchemy import engine_from_config, pool
 GOC_DU_AN = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(GOC_DU_AN / "src"))
 
-from scorm_service.models import Base 
+from scorm_service.models import Base
 
 config = context.config
 if config.config_file_name is not None:
