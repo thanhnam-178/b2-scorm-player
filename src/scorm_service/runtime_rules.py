@@ -24,6 +24,7 @@ TRANG_THAI_HOP_LE = {"passed", "completed", "failed", "incomplete", "browsed", "
 TRANG_THAI_DA_XONG = {"completed", "passed"}
 EXIT_HOP_LE = {"time-out", "suspend", "logout", ""}
 KHOA_KHI_DA_XONG = {LESSON_STATUS} | KHOA_DIEM
+KHOA_EXIT_TRUOC = "_exit_truoc"  # exit cua phien truoc, giu den khi terminate
 
 
 @dataclass
@@ -36,14 +37,18 @@ class KetQuaLo:
 def bat_dau_phien(cmi_cu: dict | None) -> tuple[str, dict]:
     """Goi khi SCO Initialize. Tra ve (entry, cmi moi can luu)."""
     cmi = dict(cmi_cu or {})
+    cmi.pop(SESSION_TIME, None)
     chua_hoc = not any(k.startswith("cmi.") for k in cmi)
+    # exit cua phien truoc: con trong cmi thi lay ra; neu da chuyen vao
+    # khoa noi bo (trang bi tai lai) thi lay o do
+    exit_truoc = cmi.pop(EXIT) if EXIT in cmi else cmi.get(KHOA_EXIT_TRUOC)
+    cmi[KHOA_EXIT_TRUOC] = exit_truoc
     if chua_hoc:
         entry = "ab-initio"
-    elif cmi.get(EXIT) == "suspend":
+    elif exit_truoc == "suspend":
         entry = "resume"
     else:
         entry = ""
-    cmi.pop(EXIT, None)  # exit chi co nghia trong mot phien
     # chot luc bat dau phien: neu da xong thi phien nay khong duoc doi ket qua
     cmi[KHOA_NOI_BO] = cmi.get(LESSON_STATUS) in TRANG_THAI_DA_XONG
     return entry, cmi

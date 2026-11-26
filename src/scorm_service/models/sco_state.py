@@ -24,6 +24,11 @@ class ScoState(Base):
     score_raw: Mapped[Decimal | None] = mapped_column(Numeric(6, 2))
     score_min: Mapped[Decimal | None] = mapped_column(Numeric(6, 2))
     score_max: Mapped[Decimal | None] = mapped_column(Numeric(6, 2))
+    total_time_seconds: Mapped[Decimal] = mapped_column(
+    Numeric(12, 2),
+    default=Decimal("0"),
+    nullable=False,
+)
     last_seq: Mapped[int] = mapped_column(default=0)  # so thu tu lo luu cuoi
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=bay_gio)
 
