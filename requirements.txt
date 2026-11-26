@@ -12,3 +12,7 @@ sqlalchemy
 alembic
 psycopg[binary]
 python-dotenv
+types-defusedxml
+boto3-stubs[s3]
+Authlib==1.9.10
+itsdangerous

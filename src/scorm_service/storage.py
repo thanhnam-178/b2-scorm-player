@@ -1,10 +1,14 @@
 """Luu goi da giai nen len MinIO: src/scorm_service/storage.py"""
+import logging
 import mimetypes
 import os
 from pathlib import Path
 
 import boto3
 from botocore.config import Config
+from botocore.exceptions import BotoCoreError, ClientError
+
+logger = logging.getLogger(__name__)
 
 # Windows hay doan sai kieu tep; nosniff khong cho trinh duyet doan lai
 KIEU_TEP = {
@@ -30,22 +34,53 @@ def _client():
     )
 
 
+
 def upload_dir(local_dir, prefix: str) -> int:
-    """Tai moi tep trong local_dir len bucket duoi tien to prefix; tra ve so tep."""
+    """Tai tep len MinIO; neu that bai thi xoa cac object da tai."""
     s3 = _client()
     bucket = os.environ["S3_BUCKET"]
     local_dir = Path(local_dir)
-    dem = 0
-    for f in local_dir.rglob("*"):
-        if not f.is_file():
-            continue
-        key = f"{prefix}/{f.relative_to(local_dir).as_posix()}"
-        kieu = (KIEU_TEP.get(f.suffix.lower())
+    cac_key_da_tai = []
+
+    try:
+        for f in sorted(local_dir.rglob("*")):
+            if not f.is_file():
+                continue
+
+            key = f"{prefix}/{f.relative_to(local_dir).as_posix()}"
+            kieu = (
+                KIEU_TEP.get(f.suffix.lower())
                 or mimetypes.guess_type(f.name)[0]
-                or "application/octet-stream")
-        s3.upload_file(str(f), bucket, key, ExtraArgs={"ContentType": kieu})
-        dem += 1
-    return dem
+                or "application/octet-stream"
+            )
+
+            s3.upload_file(
+                str(f),
+                bucket,
+                key,
+                ExtraArgs={"ContentType": kieu},
+            )
+            cac_key_da_tai.append(key)
+
+    except Exception:
+        if cac_key_da_tai:
+            try:
+                s3.delete_objects(
+                    Bucket=bucket,
+                    Delete={
+                        "Objects": [{"Key": key} for key in cac_key_da_tai],
+                        "Quiet": True,
+                    },
+                )
+            except (BotoCoreError, ClientError):
+                # Khong de loi don dep che mat loi upload ban dau.
+                logger.exception(
+                    "Khong the don dep object MinIO sau khi upload that bai"
+                )
+        raise
+
+    return len(cac_key_da_tai)
+
 
 
 def next_version(ten: str) -> int:
@@ -61,3 +96,14 @@ def next_version(ten: str) -> int:
             if so.startswith("v") and so[1:].isdigit():
                 cao_nhat = max(cao_nhat, int(so[1:]))
     return cao_nhat + 1
+
+
+def get_object(key: str):
+    """Doc mot object tu bucket MinIO rieng tu."""
+    s3 = _client()
+    bucket = os.environ["S3_BUCKET"]
+
+    return s3.get_object(
+        Bucket=bucket,
+        Key=key,
+    )
